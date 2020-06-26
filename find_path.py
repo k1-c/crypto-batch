@@ -24,20 +24,45 @@ def sign(tosign, priv_key):
 fee = int(os.environ.get('FEE'))
 output_address = os.environ.get('OUTPUT_ADDRESS')
 token = os.environ.get('BC_TOKEN')
-master = Wallet.from_master_secret(seed=os.environ.get('SEED'))
+master = Wallet.from_master_secret(seed=os.environ.get('OLD_SEED'))
 crypto_url = os.environ.get('CRYPTO_URL')
 """ ======= """
 
 
-print(fee)
-print(output_address)
-print(token)
-print(master.get_child(1, is_prime=False))
-
 baseurl = 'https://api.blockcypher.com/v1/btc/main/'
-childs = requests.get(crypto_url).json()
+
+
+addresses = [
+	"1NPniCp3hMm9ckVvwpoaBiCCefXVPRREjY",
+	"14Ju84DKiJ3VEu2RQGD9WDY6eBec3jD95g",
+	"1B686RfBzoRshrYYX3XFLUzUCofuk8sHvz",
+	"1CER1F29KLwLg5K1KCJwWCamMNN2YUGmBM",
+	"18b61DAQJDh9y8SK8PxWdzA4zrtFNBms8J",
+	"1KxrJyJ1XA2HeNFGVSd4Dmts7rLTpupK4H",
+	"1G6yBDSttN5B2H4fJBLbFCk61NFhFDBwyZ",
+	"1MCXDgfQ2cXmQ9ndwPgk7BbFhwC2oqsomk",
+	"1HTFzbXxruCiN6vLVkXwm7G78jjwG3FuU1",
+	"12LtjxU7NvTBund7ZYjXYFi3FS9uMoSvnM",
+	"1En2WDNa9hUgCFX5LApubzMjhEAigXH6v3",
+	"1BoKkeA5rwWEMcQb8EsFpwQSkVwArS85mZ"
+]
+
 
 wallet_base = master.get_child(0, is_prime=True)
+print(wallet_base.serialize_b58(private=False))
+
+LENGTH = 50
+childs = []
+
+for i in range(LENGTH):
+	addr = wallet_base.get_child(i, is_prime=False).to_address()
+	if addr in addresses:
+		print('hit')
+		childs.append({
+			"address": addr,
+			"path_index": i
+		})
+
 
 total_amount = 0
 request_json = {
@@ -47,18 +72,20 @@ request_json = {
 }
 
 for child in childs:
-	if child['network'] == "BTC":
-		tar_address = child['address']
-		info = requests.get(baseurl + 'addrs/' + tar_address + '/balance' + '?token=' + token).json()
-		print(info)
-		if info['balance'] > 0:
-			total_amount += info['balance']
-			request_json["inputs"].append({"addresses": [tar_address]})
+	tar_address = child['address']
+	info = requests.get(baseurl + 'addrs/' + tar_address + '/balance' + '?token=' + token).json()
+	print(info)
+	if info['balance'] > 0:
+		total_amount += info['balance']
+		request_json["inputs"].append({"addresses": [tar_address]})
+
 
 request_json['outputs'][0]['value'] = total_amount - fee
 
+
 print(total_amount)
 print(request_json)
+
 
 tx = requests.post(baseurl + "txs/new", data=json.dumps(request_json)).json()
 print(tx)
@@ -94,5 +121,5 @@ tx['pubkeys'] = pubkey_list
 
 
 print(json.dumps(tx))
-res = requests.post(baseurl + "txs/send?token=" + token, json=json.dumps(tx)).json
+res = requests.post(baseurl + "txs/send?token=" + token, data=json.dumps(tx)).json()
 print(res)
