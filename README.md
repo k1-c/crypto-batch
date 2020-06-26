@@ -2,6 +2,7 @@
 > crypto fowarding batches
 
 ## Requirements
+- [poetry](https://python-poetry.org/)
 - installation of [golang](https://golang.org/)
 - [signer tool](https://github.com/blockcypher/btcutils/tree/master/signer)
 > compile and place binary at ~/go/bin/signer or any
